@@ -17,7 +17,8 @@ export default function CaregiverTracker() {
     date: new Date().toISOString().split('T')[0],
     hours: '',
     comments: '',
-    expenses: ''
+    expenses: '',
+    expense_details: ''
   });
 
   const getCurrentMonth = () => {
@@ -99,7 +100,8 @@ export default function CaregiverTracker() {
           date: currentEntry.date,
           hours: parseFloat(currentEntry.hours),
           comments: currentEntry.comments || '',
-          expenses: parseFloat(currentEntry.expenses) || 0
+          expenses: parseFloat(currentEntry.expenses) || 0,
+          expense_details: currentEntry.expense_details || ''
         }])
         .select();
 
@@ -110,7 +112,8 @@ export default function CaregiverTracker() {
         date: new Date().toISOString().split('T')[0],
         hours: '',
         comments: '',
-        expenses: ''
+        expenses: '',
+        expense_details: ''
       });
       setError(null);
     } catch (err) {
@@ -166,9 +169,12 @@ export default function CaregiverTracker() {
       });
       emailBody += `Date: ${date}\n`;
       emailBody += `Hours: ${entry.hours}\n`;
-      emailBody += `Pay: $${calculatePay(entry.hours)}\n`;
+      emailBody += `Pay: ${calculatePay(entry.hours)}\n`;
       if (entry.expenses > 0) {
-        emailBody += `Expenses: $${entry.expenses.toFixed(2)}\n`;
+        emailBody += `Expenses: ${entry.expenses.toFixed(2)}\n`;
+      }
+      if (entry.expense_details) {
+        emailBody += `Expense Details:\n${entry.expense_details}\n`;
       }
       if (entry.comments) {
         emailBody += `Notes: ${entry.comments}\n`;
@@ -302,6 +308,16 @@ export default function CaregiverTracker() {
                 />
               </div>
               <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Expense Details (Optional)</label>
+                <textarea
+                  value={currentEntry.expense_details}
+                  onChange={(e) => setCurrentEntry({...currentEntry, expense_details: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-y"
+                  placeholder="Gas: $25&#10;Groceries: $50&#10;Supplies: $15"
+                  rows="3"
+                />
+              </div>
+              <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-1">Comments</label>
                 <textarea
                   value={currentEntry.comments}
@@ -344,8 +360,14 @@ export default function CaregiverTracker() {
                           <span className="text-orange-600 font-medium">Expenses: ${entry.expenses.toFixed(2)}</span>
                         )}
                       </div>
+                      {entry.expense_details && (
+                        <div className="mt-2 p-2 bg-orange-50 rounded text-sm">
+                          <p className="text-orange-800 font-medium mb-1">Expense Details:</p>
+                          <p className="text-gray-700 whitespace-pre-wrap">{entry.expense_details}</p>
+                        </div>
+                      )}
                       {entry.comments && (
-                        <p className="text-gray-600 text-sm whitespace-pre-wrap">{entry.comments}</p>
+                        <p className="text-gray-600 text-sm whitespace-pre-wrap mt-2">{entry.comments}</p>
                       )}
                     </div>
                     <button
