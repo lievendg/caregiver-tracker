@@ -10,9 +10,13 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 export default function CaregiverTracker() {
   const [entries, setEntries] = useState([]);
+  const [allEntries, setAllEntries] = useState([]);
   const [recipientEmail, setRecipientEmail] = useState('lievendg@gmail.com');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [currentView, setCurrentView] = useState('tracker'); // 'tracker' or 'alldata'
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterMonth, setFilterMonth] = useState('all');
   const [currentEntry, setCurrentEntry] = useState({
     date: new Date().toISOString().split('T')[0],
     hours: '',
@@ -36,8 +40,23 @@ export default function CaregiverTracker() {
   // Load entries for current month
   useEffect(() => {
     loadEntries();
+    loadAllEntries();
     loadSettings();
   }, []);
+
+  const loadAllEntries = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('caregiver_entries')
+        .select('*')
+        .order('date', { ascending: false });
+
+      if (error) throw error;
+      setAllEntries(data || []);
+    } catch (err) {
+      console.error('Error loading all entries:', err);
+    }
+  };
 
   const loadEntries = async () => {
     try {
@@ -108,6 +127,7 @@ export default function CaregiverTracker() {
       if (error) throw error;
 
       setEntries([data[0], ...entries]);
+      await loadAllEntries(); // Refresh all data view
       setCurrentEntry({
         date: new Date().toISOString().split('T')[0],
         hours: '',
@@ -132,6 +152,7 @@ export default function CaregiverTracker() {
       if (error) throw error;
 
       setEntries(entries.filter(e => e.id !== id));
+      await loadAllEntries(); // Refresh all data view
       setError(null);
     } catch (err) {
       setError(err.message);
@@ -205,6 +226,71 @@ export default function CaregiverTracker() {
     await loadEntries();
   };
 
+  const exportAllToCSV = () => {
+    const filtered = getFilteredEntries();
+    const csvData = filtered.map(e => ({
+      Date: e.date,
+      Hours: e.hours,
+      Pay: calculatePay(e.hours),
+      Expenses: e.expenses.toFixed(2),
+      'Expense Details': e.expense_details || '',
+      Comments: e.comments || ''
+    }));
+    
+    const csv = [
+      Object.keys(csvData[0]).join(','),
+      ...csvData.map(row => Object.values(row).map(v => `"${v}"`).join(','))
+    ].join('\n');
+    
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `caregiver-all-data-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+  };
+
+  const getFilteredEntries = () => {
+    let filtered = [...allEntries];
+
+    // Filter by month
+    if (filterMonth !== 'all') {
+      filtered = filtered.filter(e => {
+        const entryDate = new Date(e.date);
+        const entryMonth = `${entryDate.getFullYear()}-${String(entryDate.getMonth() + 1).padStart(2, '0')}`;
+        return entryMonth === filterMonth;
+      });
+    }
+
+    // Filter by search term
+    if (searchTerm) {
+      filtered = filtered.filter(e => {
+        const searchLower = searchTerm.toLowerCase();
+        return (
+          e.comments?.toLowerCase().includes(searchLower) ||
+          e.expense_details?.toLowerCase().includes(searchLower) ||
+          e.date.includes(searchLower)
+        );
+      });
+    }
+
+    return filtered;
+  };
+
+  const getUniqueMonths = () => {
+    const months = allEntries.map(e => {
+      const date = new Date(e.date);
+      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+    });
+    return [...new Set(months)].sort().reverse();
+  };
+
+  const formatMonthLabel = (monthStr) => {
+    const [year, month] = monthStr.split('-');
+    const date = new Date(year, parseInt(month) - 1);
+    return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 flex items-center justify-center">
@@ -216,6 +302,136 @@ export default function CaregiverTracker() {
     );
   }
 
+  // All Data View
+  if (currentView === 'alldata') {
+    const filteredEntries = getFilteredEntries();
+    const filteredTotalHours = filteredEntries.reduce((sum, e) => sum + e.hours, 0);
+    const filteredTotalPay = filteredTotalHours * 30;
+    const filteredTotalExpenses = filteredEntries.reduce((sum, e) => sum + e.expenses, 0);
+
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 p-6">
+        <div className="max-w-6xl mx-auto">
+          <div className="bg-white rounded-lg shadow-lg p-6">
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h1 className="text-3xl font-bold text-gray-800">All Data View</h1>
+                <p className="text-gray-600 mt-1">Complete history of all entries</p>
+              </div>
+              <button
+                onClick={() => setCurrentView('tracker')}
+                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+              >
+                Back to Tracker
+              </button>
+            </div>
+
+            {/* Filters */}
+            <div className="bg-gray-50 rounded-lg p-4 mb-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Search</label>
+                  <input
+                    type="text"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder="Search comments, expenses, dates..."
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Filter by Month</label>
+                  <select
+                    value={filterMonth}
+                    onChange={(e) => setFilterMonth(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  >
+                    <option value="all">All Months</option>
+                    {getUniqueMonths().map(month => (
+                      <option key={month} value={month}>{formatMonthLabel(month)}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex items-end">
+                  <button
+                    onClick={exportAllToCSV}
+                    className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                  >
+                    Export to CSV
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Summary for filtered data */}
+            <div className="bg-gradient-to-r from-indigo-600 to-blue-600 rounded-lg p-6 text-white mb-6">
+              <h2 className="text-xl font-bold mb-4">
+                {filterMonth === 'all' ? 'Total Summary' : `${formatMonthLabel(filterMonth)} Summary`}
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="bg-white bg-opacity-20 rounded-lg p-4">
+                  <p className="text-sm opacity-90 mb-1">Entries</p>
+                  <p className="text-3xl font-bold">{filteredEntries.length}</p>
+                </div>
+                <div className="bg-white bg-opacity-20 rounded-lg p-4">
+                  <p className="text-sm opacity-90 mb-1">Total Hours</p>
+                  <p className="text-3xl font-bold">{filteredTotalHours.toFixed(1)}</p>
+                </div>
+                <div className="bg-white bg-opacity-20 rounded-lg p-4">
+                  <p className="text-sm opacity-90 mb-1">Total Pay</p>
+                  <p className="text-3xl font-bold">${filteredTotalPay.toFixed(2)}</p>
+                </div>
+                <div className="bg-white bg-opacity-20 rounded-lg p-4">
+                  <p className="text-sm opacity-90 mb-1">Total Expenses</p>
+                  <p className="text-3xl font-bold">${filteredTotalExpenses.toFixed(2)}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Data Table */}
+            {filteredEntries.length > 0 ? (
+              <div className="space-y-2">
+                {filteredEntries.map(entry => (
+                  <div key={entry.id} className="bg-white border border-gray-200 rounded-lg p-4">
+                    <div className="flex items-center gap-4 mb-2">
+                      <span className="font-semibold text-gray-800">
+                        {new Date(entry.date + 'T00:00:00').toLocaleDateString('en-US', { 
+                          weekday: 'short', 
+                          month: 'short', 
+                          day: 'numeric',
+                          year: 'numeric'
+                        })}
+                      </span>
+                      <span className="text-indigo-600 font-medium">{entry.hours}h</span>
+                      <span className="text-green-600 font-medium">${calculatePay(entry.hours)}</span>
+                      {entry.expenses > 0 && (
+                        <span className="text-orange-600 font-medium">Expenses: ${entry.expenses.toFixed(2)}</span>
+                      )}
+                    </div>
+                    {entry.expense_details && (
+                      <div className="mt-2 p-2 bg-orange-50 rounded text-sm">
+                        <p className="text-orange-800 font-medium mb-1">Expense Details:</p>
+                        <p className="text-gray-700 whitespace-pre-wrap">{entry.expense_details}</p>
+                      </div>
+                    )}
+                    {entry.comments && (
+                      <p className="text-gray-600 text-sm whitespace-pre-wrap mt-2">{entry.comments}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-gray-500">
+                No entries found matching your filters.
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Main Tracker View
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 p-6">
       <div className="max-w-4xl mx-auto">
@@ -226,6 +442,12 @@ export default function CaregiverTracker() {
               <p className="text-gray-600 mt-1">{getCurrentMonth()}</p>
             </div>
             <div className="flex items-center gap-3">
+              <button
+                onClick={() => setCurrentView('alldata')}
+                className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+              >
+                View All Data
+              </button>
               <div className="flex items-center gap-2">
                 <label className="text-sm text-gray-600">Send to:</label>
                 <input
