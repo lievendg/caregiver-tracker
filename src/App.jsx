@@ -313,14 +313,14 @@ export default function CaregiverTracker() {
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 p-6">
         <div className="max-w-6xl mx-auto">
           <div className="bg-white rounded-lg shadow-lg p-6">
-            <div className="flex justify-between items-center mb-6">
+            <div className="flex justify-between items-start mb-6">
               <div>
-                <h1 className="text-3xl font-bold text-gray-800">All Data View</h1>
+                <h1 className="text-2xl font-bold text-gray-800">All Data View</h1>
                 <p className="text-gray-600 mt-1">Complete history of all entries</p>
               </div>
               <button
                 onClick={() => setCurrentView('tracker')}
-                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                className="px-3 py-1.5 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
               >
                 Back to Tracker
               </button>
@@ -355,7 +355,7 @@ export default function CaregiverTracker() {
                 <div className="flex items-end">
                   <button
                     onClick={exportAllToCSV}
-                    className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                    className="w-full px-3 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
                   >
                     Export to CSV
                   </button>
@@ -365,7 +365,7 @@ export default function CaregiverTracker() {
 
             {/* Summary for filtered data */}
             <div className="bg-gradient-to-r from-indigo-600 to-blue-600 rounded-lg p-6 text-white mb-6">
-              <h2 className="text-xl font-bold mb-4">
+              <h2 className="text-lg font-bold mb-4">
                 {filterMonth === 'all' ? 'Total Summary' : `${formatMonthLabel(filterMonth)} Summary`}
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -436,20 +436,18 @@ export default function CaregiverTracker() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 p-6">
       <div className="max-w-4xl mx-auto">
         <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-          <div className="flex justify-between items-center mb-6">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-800">Caregiver Hours Tracker</h1>
-              <p className="text-gray-600 mt-1">{getCurrentMonth()}</p>
+          <div className="mb-6">
+            <div className="flex justify-between items-start mb-4">
+              <div>
+                <h1 className="text-2xl font-bold text-gray-800">Caregiver Hours Tracker</h1>
+                <p className="text-gray-600 mt-1">{getCurrentMonth()}</p>
+              </div>
             </div>
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => setCurrentView('alldata')}
-                className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
-              >
-                View All Data
-              </button>
+            
+            {/* Buttons row */}
+            <div className="flex flex-wrap items-center gap-2">
               <div className="flex items-center gap-2">
-                <label className="text-sm text-gray-600">Send to:</label>
+                <label className="text-xs text-gray-600 whitespace-nowrap">Send to:</label>
                 <input
                   type="email"
                   value={recipientEmail}
@@ -457,20 +455,20 @@ export default function CaregiverTracker() {
                     setRecipientEmail(e.target.value);
                     saveSettings(e.target.value);
                   }}
-                  className="w-48 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  className="w-40 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 />
               </div>
               <button
                 onClick={sendReport}
                 disabled={entries.length === 0}
-                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                className="flex items-center gap-2 px-3 py-1.5 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
               >
-                <Send size={18} />
+                <Send size={16} />
                 Send Report
               </button>
               <button
                 onClick={startNewMonth}
-                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                className="px-3 py-1.5 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
               >
                 New Month
               </button>
@@ -553,7 +551,7 @@ export default function CaregiverTracker() {
             <button
               onClick={addEntry}
               disabled={!currentEntry.hours}
-              className="mt-4 w-full flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+              className="mt-4 w-full flex items-center justify-center gap-2 px-4 py-2 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
             >
               <Plus size={18} />
               Add Entry
@@ -610,7 +608,15 @@ export default function CaregiverTracker() {
 
           {/* Summary */}
           <div className="bg-gradient-to-r from-indigo-600 to-blue-600 rounded-lg p-6 text-white">
-            <h2 className="text-xl font-bold mb-4">Monthly Summary</h2>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-bold">Monthly Summary</h2>
+              <button
+                onClick={() => setCurrentView('alldata')}
+                className="px-3 py-1 text-xs bg-white bg-opacity-20 hover:bg-opacity-30 rounded transition-colors"
+              >
+                View All Data
+              </button>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="bg-white bg-opacity-20 rounded-lg p-4">
                 <p className="text-sm opacity-90 mb-1">Total Hours</p>
