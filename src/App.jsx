@@ -10,7 +10,7 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 export default function CaregiverTracker() {
   const [entries, setEntries] = useState([]);
-  const [recipientEmail, setRecipientEmail] = useState('');
+  const [recipientEmail, setRecipientEmail] = useState('lievendg@gmail.com');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [currentEntry, setCurrentEntry] = useState({
@@ -214,12 +214,24 @@ export default function CaregiverTracker() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 p-6">
       <div className="max-w-4xl mx-auto">
         <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-          <div className="flex justify-between items-center mb-4">
+          <div className="flex justify-between items-center mb-6">
             <div>
               <h1 className="text-3xl font-bold text-gray-800">Caregiver Hours Tracker</h1>
               <p className="text-gray-600 mt-1">{getCurrentMonth()}</p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
+                <label className="text-sm text-gray-600">Send to:</label>
+                <input
+                  type="email"
+                  value={recipientEmail}
+                  onChange={(e) => {
+                    setRecipientEmail(e.target.value);
+                    saveSettings(e.target.value);
+                  }}
+                  className="w-48 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                />
+              </div>
               <button
                 onClick={sendReport}
                 disabled={entries.length === 0}
@@ -246,23 +258,6 @@ export default function CaregiverTracker() {
               </div>
             </div>
           )}
-
-          {/* Email Settings */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Send Reports To (Email Address):
-            </label>
-            <input
-              type="email"
-              value={recipientEmail}
-              onChange={(e) => {
-                setRecipientEmail(e.target.value);
-                saveSettings(e.target.value);
-              }}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-              placeholder="email@example.com"
-            />
-          </div>
 
           {/* Entry Form */}
           <div className="bg-gray-50 rounded-lg p-4 mb-6">
@@ -294,7 +289,7 @@ export default function CaregiverTracker() {
                   </p>
                 )}
               </div>
-              <div>
+              <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-1">Expenses ($)</label>
                 <input
                   type="number"
@@ -306,14 +301,14 @@ export default function CaregiverTracker() {
                   placeholder="0.00"
                 />
               </div>
-              <div>
+              <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-1">Comments</label>
-                <input
-                  type="text"
+                <textarea
                   value={currentEntry.comments}
                   onChange={(e) => setCurrentEntry({...currentEntry, comments: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-y"
                   placeholder="Notes about the day"
+                  rows="3"
                 />
               </div>
             </div>
@@ -350,7 +345,7 @@ export default function CaregiverTracker() {
                         )}
                       </div>
                       {entry.comments && (
-                        <p className="text-gray-600 text-sm">{entry.comments}</p>
+                        <p className="text-gray-600 text-sm whitespace-pre-wrap">{entry.comments}</p>
                       )}
                     </div>
                     <button
